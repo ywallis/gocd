@@ -6,12 +6,18 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
-func crawlDir(dir *string) {
+func crawlDir(dir *string, limit int) {
 
 	hashes := make(map[string][]file)
 	emptyDirs := []string{}
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	sem := make(chan struct{}, limit)
 
 	err := filepath.WalkDir(*dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -40,14 +46,20 @@ func crawlDir(dir *string) {
 		if strings.HasPrefix(fileName, ".") {
 			return nil
 		}
-		fileHash, err := hash_file(path)
-
-		if err != nil {
-			fmt.Printf("Error hashing file: %s\n", fileName)
-			return err
-		}
-
-		hashes[fileHash] = append(hashes[fileHash], file{name: fileName, path: path})
+		wg.Add(1)
+		go func(p, name string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			fileHash, err := hash_file(path)
+			if err != nil {
+				fmt.Printf("Error hashing file: %s\n", fileName)
+				return
+			}
+			mu.Lock()
+			hashes[fileHash] = append(hashes[fileHash], file{name: fileName, path: path})
+			mu.Unlock()
+		}(path, fileName)
 
 		return nil
 	})
@@ -55,6 +67,7 @@ func crawlDir(dir *string) {
 	if err != nil {
 		log.Fatalf("Error walking the path: %v\n", err)
 	}
+	wg.Wait()
 	listConflits(hashes)
 
 	if len(emptyDirs) > 0 {
