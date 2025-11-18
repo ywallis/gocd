@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/sha256"
+	"crypto/md5"
 	"io"
 	"os"
 )
@@ -12,7 +12,7 @@ func hash_file(path string) (string, error) {
 		return "", err
 	}
 	defer f.Close()
-	h := sha256.New()
+	h := md5.New()
 	if _, err := io.Copy(h, f); err != nil {
 		return "", err
 	}
