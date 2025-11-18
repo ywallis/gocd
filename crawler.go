@@ -5,12 +5,12 @@ import (
 	"io/fs"
 	"log"
 	"path/filepath"
+	"strings"
 )
 
 func crawl_dir(dir *string) {
 
-	hashes := make(map[string]bool)
-	var dupes []duplicateFile
+	hashes := make(map[string][]file)
 
 	err := filepath.WalkDir(*dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -22,6 +22,11 @@ func crawl_dir(dir *string) {
 			return nil
 		}
 		fileName := d.Name()
+
+		// Break flow for dotfiles
+		if strings.HasPrefix(fileName, ".") {
+			return nil
+		}
 		fileHash, err := hash_file(path)
 
 		if err != nil {
@@ -29,12 +34,7 @@ func crawl_dir(dir *string) {
 			return err
 		}
 
-		if _, ok := hashes[fileHash]; ok {
-			newDuplicate := duplicateFile{name: fileName, path: path}
-			dupes = append(dupes, newDuplicate)
-		} else {
-			hashes[fileHash] = true
-		}
+		hashes[fileHash] = append(hashes[fileHash], file{name: fileName, path: path})
 
 		return nil
 	})
@@ -42,8 +42,18 @@ func crawl_dir(dir *string) {
 	if err != nil {
 		log.Fatalf("Error walking the path: %v\n", err)
 	}
-	fmt.Println("Found duplicate files:")
-	for _, file := range dupes {
-		fmt.Printf("- %s (%s)\n", file.name, file.path)
+	for _, files := range hashes {
+		if len(files) > 1 {
+			fmt.Println("Found conflict:")
+			smallestPath := files[0]
+			for _, f := range files {
+				fmt.Printf("%s at %s\n", f.name, f.path)
+				if len(f.path) < len(smallestPath.path) {
+					smallestPath = f
+				}
+			}
+			fmt.Printf("Will keep: %s\n", smallestPath.name)
+			fmt.Println()
+		}
 	}
 }

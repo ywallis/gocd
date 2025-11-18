@@ -1,6 +1,6 @@
 package main
 
-type duplicateFile struct {
+type file struct {
 	name string
 	path string
 }
