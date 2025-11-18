@@ -9,31 +9,40 @@ import (
 
 func crawl_dir(dir *string) {
 
-	files := make(map[string]bool)
+	hashes := make(map[string]bool)
 	var dupes []string
 
 	err := filepath.WalkDir(*dir, func(path string, d fs.DirEntry, err error) error {
-		// 1. Handle errors
 		if err != nil {
 			fmt.Printf("Error accessing path %q: %v\n", path, err)
-			return err // Stop walking this path
+			return err
 		}
 
-		// 2. Print the path
+		if d.IsDir() {
+			return nil
+		}
 		fileName := d.Name()
+		fileHash, err := hash_file(path)
 
-		if _, ok := files[fileName]; ok {
+		if err != nil {
+			fmt.Printf("Error hashing file: %s\n", fileName)
+			return err
+		}
+
+		if _, ok := hashes[fileHash]; ok {
 			dupes = append(dupes, fileName)
 		} else {
-			files[fileName] = true
+			hashes[fileHash] = true
 		}
 
-		// 3. Continue walking
 		return nil
 	})
 
 	if err != nil {
 		log.Fatalf("Error walking the path: %v\n", err)
 	}
-	fmt.Println("Found duplicate file names:", dupes)
+	fmt.Println("Found duplicate files:")
+	for _, file := range dupes {
+		fmt.Printf("- %s\n", file)
+	}
 }
