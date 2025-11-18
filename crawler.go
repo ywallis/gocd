@@ -19,7 +19,12 @@ func crawlDir(dir *string) {
 			return err
 		}
 
+		fileName := d.Name()
+
 		if d.IsDir() {
+			if strings.HasPrefix(fileName, ".") {
+				return filepath.SkipDir
+			}
 			isEmpty, err := isDirEmpty(path)
 			if err != nil {
 				return err
@@ -30,7 +35,6 @@ func crawlDir(dir *string) {
 			}
 			return nil
 		}
-		fileName := d.Name()
 
 		// Break flow for dotfiles
 		if strings.HasPrefix(fileName, ".") {
