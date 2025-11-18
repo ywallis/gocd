@@ -8,9 +8,10 @@ import (
 	"strings"
 )
 
-func crawl_dir(dir *string) {
+func crawlDir(dir *string) {
 
 	hashes := make(map[string][]file)
+	emptyDirs := []string{}
 
 	err := filepath.WalkDir(*dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -19,6 +20,14 @@ func crawl_dir(dir *string) {
 		}
 
 		if d.IsDir() {
+			isEmpty, err := isDirEmpty(path)
+			if err != nil {
+				return err
+			}
+			if isEmpty {
+				emptyDirs = append(emptyDirs, path)
+
+			}
 			return nil
 		}
 		fileName := d.Name()
@@ -42,18 +51,12 @@ func crawl_dir(dir *string) {
 	if err != nil {
 		log.Fatalf("Error walking the path: %v\n", err)
 	}
-	for _, files := range hashes {
-		if len(files) > 1 {
-			fmt.Println("Found conflict:")
-			smallestPath := files[0]
-			for _, f := range files {
-				fmt.Printf("%s at %s\n", f.name, f.path)
-				if len(f.path) < len(smallestPath.path) {
-					smallestPath = f
-				}
-			}
-			fmt.Printf("Will keep: %s\n", smallestPath.name)
-			fmt.Println()
+	listConflits(hashes)
+
+	if len(emptyDirs) > 0 {
+		fmt.Println("Found some empty directories:")
+		for _, dir := range emptyDirs {
+			fmt.Printf("-%s\n", dir)
 		}
 	}
 }
