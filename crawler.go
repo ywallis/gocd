@@ -10,7 +10,7 @@ import (
 func crawl_dir(dir *string) {
 
 	hashes := make(map[string]bool)
-	var dupes []string
+	var dupes []duplicateFile
 
 	err := filepath.WalkDir(*dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -30,7 +30,8 @@ func crawl_dir(dir *string) {
 		}
 
 		if _, ok := hashes[fileHash]; ok {
-			dupes = append(dupes, fileName)
+			newDuplicate := duplicateFile{name: fileName, path: path}
+			dupes = append(dupes, newDuplicate)
 		} else {
 			hashes[fileHash] = true
 		}
@@ -43,6 +44,6 @@ func crawl_dir(dir *string) {
 	}
 	fmt.Println("Found duplicate files:")
 	for _, file := range dupes {
-		fmt.Printf("- %s\n", file)
+		fmt.Printf("- %s (%s)\n", file.name, file.path)
 	}
 }
