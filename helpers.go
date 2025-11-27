@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
+	"sync"
 )
 
 func isDirEmpty(path string) (bool, error) {
@@ -36,4 +39,44 @@ func listConflits(hashes map[string][]file) {
 			fmt.Println()
 		}
 	}
+}
+
+func processDirectory(dirPath string, sem chan struct{}) error {
+
+	hashes := make(map[string][]file)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+
+		fileName := entry.Name()
+		fullPath := filepath.Join(dirPath, fileName)
+
+		if entry.IsDir() || strings.HasPrefix(fileName, ".") {
+			continue
+		}
+		wg.Add(1)
+		go func(p, name string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			fileHash, err := hash_file(p)
+			if err != nil {
+				fmt.Printf("Error hashing file: %s\n", fileName)
+				return
+			}
+			mu.Lock()
+			hashes[fileHash] = append(hashes[fileHash], file{name: fileName, path: fullPath})
+			mu.Unlock()
+		}(fullPath, fileName)
+	}
+
+	wg.Wait()
+	listConflits(hashes)
+	return nil
 }
