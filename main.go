@@ -19,6 +19,7 @@ func main() {
 	limitPtr := flag.Int("l", 2, "The maximum amount of threads to be used.")
 	flag.Parse()
 
+	organize(*dirPtr)
 	start := time.Now()
 	crawlDir(dirPtr, *limitPtr)
 	end := time.Now()

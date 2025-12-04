@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -8,6 +9,20 @@ import (
 	"strings"
 	"sync"
 )
+
+func loadTypes() (map[string]string, error) {
+
+	types := make(map[string]string)
+	bytes, err := os.ReadFile("extensions.json")
+	if err != nil {
+		return types, err
+	}
+	err = json.Unmarshal(bytes, &types)
+	if err != nil {
+		return types, err
+	}
+	return types, nil
+}
 
 func isDirEmpty(path string) (bool, error) {
 	f, err := os.Open(path)
