@@ -35,7 +35,13 @@ func organize(dirPath string) error {
 		currentFilePath := filepath.Join(dirPath, fileName)
 		newFilePath := filepath.Join(dirPath, fileType, fileName)
 
-		os.Rename(currentFilePath, newFilePath)
+		if fileExists(newFilePath) {
+			newFilePath = findNextPath(newFilePath)
+			os.Rename(currentFilePath, newFilePath)
+		} else {
+			os.Rename(currentFilePath, newFilePath)
+		}
+
 	}
 
 	return nil

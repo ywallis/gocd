@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -24,6 +26,33 @@ func loadTypes() (map[string]string, error) {
 	return types, nil
 }
 
+func fileExists(path string) bool {
+
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return false
+	} else {
+		return true
+	}
+}
+
+func findNextPath(path string) string {
+	fileComponents := strings.Split(path, ".")
+	basePath := fileComponents[0]
+	extension := fileComponents[len(fileComponents)-1]
+
+	i := 1
+
+	for {
+		nStr := strconv.Itoa(i)
+		pathWithNum := fmt.Sprintf("%s_%s.%s", basePath, nStr, extension)
+		fmt.Println(pathWithNum)
+		if fileExists(pathWithNum) {
+			i++
+		} else {
+			return pathWithNum
+		}
+	}
+}
 func isDirEmpty(path string) (bool, error) {
 	f, err := os.Open(path)
 	if err != nil {
